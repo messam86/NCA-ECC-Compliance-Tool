@@ -1,0 +1,1226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NCA ECC-2:2024 Assessment Tool</title>
+<style>
+:root{--navy:#0A2463;--blue:#1E6091;--green:#059669;--orange:#D97706;--red:#DC2626;--gray:#9CA3AF;--bg:#F0F2F5;--white:#FFF;--text:#374151}
+*{box-sizing:border-box}
+body{font-family:Arial,sans-serif;background:var(--bg);margin:0;color:var(--text)}
+h1{color:var(--navy)}
+button{background:var(--navy);color:#fff;border:0;padding:11px 20px;border-radius:6px;cursor:pointer;font-size:14px}
+button:hover{background:var(--blue)}
+#welcomePage{text-align:center;padding:170px 20px}
+#welcomePage h1{font-size:38px;margin-bottom:8px}
+#welcomePage p{color:#6B7280;font-size:18px}
+#mainApp{display:none}
+.navbar{position:sticky;top:0;z-index:10;background:var(--navy);color:#fff;padding:14px 26px;display:flex;align-items:center;gap:8px;box-shadow:0 2px 5px rgba(0,0,0,.15)}
+.navbar h2{font-size:18px;margin:0 auto 0 0}
+.navButton{background:transparent;border:1px solid rgba(255,255,255,.8)}
+.navButton:hover{background:#fff;color:var(--navy)}
+.exportButton{display:inline-block;background:var(--green);color:#fff;border:1px solid var(--green);padding:11px 20px;border-radius:6px;text-decoration:none;cursor:pointer;font-size:14px}
+.exportButton:hover{background:#047857}
+.page{padding:28px}
+.dashboard{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-bottom:24px}
+.card{background:#fff;padding:18px;border-radius:10px;text-align:center;box-shadow:0 2px 7px rgba(0,0,0,.08)}
+.card h2{margin:0;font-size:29px}.card p{margin:7px 0 0;color:#6B7280;font-size:13px}
+.total h2{color:var(--navy)}.assessed h2{color:var(--blue)}.green h2{color:var(--green)}.orange h2{color:var(--orange)}.red h2{color:var(--red)}.rate h2{color:#7C3AED}
+.chartBox{background:#fff;padding:24px;border-radius:10px;box-shadow:0 2px 7px rgba(0,0,0,.08)}
+.chartBox h2{color:var(--navy);margin-top:0}
+.pieArea{display:flex;align-items:center;justify-content:center;gap:60px;padding:25px}
+.pieChart{width:260px;height:260px;border-radius:50%;background:#E5E7EB;box-shadow:0 3px 10px rgba(0,0,0,.15);transition:background .3s}
+.legend p{margin:14px;font-size:15px}.dot{display:inline-block;width:14px;height:14px;border-radius:50%;margin-right:8px;vertical-align:-1px}
+.greenDot{background:var(--green)}.orangeDot{background:var(--orange)}.redDot{background:var(--red)}.grayDot{background:var(--gray)}
+.tableWrap{overflow-x:auto;background:#fff;border-radius:8px;box-shadow:0 2px 5px rgba(0,0,0,.06)}
+table{width:100%;border-collapse:collapse;background:#fff}
+.assessmentTable{min-width:1180px;table-layout:fixed}
+.assessmentTable th:nth-child(1){width:18%}
+.assessmentTable th:nth-child(2){width:20%}
+.assessmentTable th:nth-child(3){width:9%}
+.assessmentTable th:nth-child(4){width:38%}
+.assessmentTable th:nth-child(5){width:15%}
+thead{display:table-header-group}
+tbody{display:table-row-group}
+th{background:var(--navy);color:#fff;padding:11px;text-align:left;font-size:13px;position:static;vertical-align:middle}
+td{padding:9px 10px;border:1px solid #E5E7EB;font-size:13px;vertical-align:top}
+tbody tr:hover{background:#F9FAFB}
+.controlId{font-weight:bold;color:var(--navy);white-space:nowrap}
+select{width:100%;min-width:155px;padding:7px;border-radius:5px;border:1px solid #D1D5DB;font-weight:bold;background:#fff}
+.compliant{background:#D1FAE5;color:var(--green);border-color:var(--green)}
+.partial{background:#FEF3C7;color:var(--orange);border-color:var(--orange)}
+.noncompliant{background:#FEE2E2;color:var(--red);border-color:var(--red)}
+.na{background:#E5E7EB;color:#6B7280;border-color:var(--gray)}
+textarea{width:100%;min-width:220px;min-height:65px;padding:8px;border:1px solid #D1D5DB;border-radius:5px;font-family:Arial;resize:vertical}
+.emptyGap{text-align:center!important;padding:30px!important;color:var(--green);font-weight:bold}
+.subtitle{color:#6B7280;margin-top:-8px;margin-bottom:20px}
+@media(max-width:1000px){.dashboard{grid-template-columns:repeat(3,1fr)}.pieArea{flex-direction:column;gap:20px}.navbar{flex-wrap:wrap}.navbar h2{width:100%;margin-bottom:4px}}
+@media(max-width:600px){.dashboard{grid-template-columns:repeat(2,1fr)}.page{padding:16px}.pieChart{width:210px;height:210px}.navbar{padding:12px}}
+</style>
+</head>
+<body>
+
+<div id="welcomePage">
+  <h1>NCA ECC-2:2024 Assessment Tool</h1>
+  <p>Essential Cybersecurity Controls Compliance Assessment</p>
+  <button onclick="startAssessment()">Start Assessment</button>
+</div>
+
+<div id="mainApp">
+  <div class="navbar">
+    <h2>NCA ECC-2:2024</h2>
+    <button class="navButton" onclick="showAssessment()">Assessment</button>
+    <button class="navButton" onclick="showDashboard()">Dashboard</button>
+    <button class="navButton" onclick="showGapAnalysis()">Gap Analysis</button>
+    <a id="exportCSVLink"
+       class="exportButton"
+       href="data:text/csv;charset=utf-8,"
+       download="NCA_ECC_2_2024_Assessment.csv"
+       onclick="return prepareCSVDownload(this)">Export CSV</a>
+  </div>
+
+  <section id="assessmentPage" class="page">
+    <h1>Compliance Assessment</h1>
+    <p class="subtitle">Assess each ECC control using the status dropdown.</p>
+    <div class="tableWrap">
+      <table class="assessmentTable">
+        <thead><tr><th>Domain</th><th>Subdomain</th><th>Control ID</th><th>Control Description</th><th>Status</th></tr></thead>
+        <tbody id="controlTable"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="dashboardPage" class="page" style="display:none">
+    <h1>Compliance Dashboard</h1>
+    <div class="dashboard">
+      <div class="card total"><h2 id="totalControls">0</h2><p>Total Controls</p></div>
+      <div class="card assessed"><h2 id="assessedControls">0</h2><p>Assessed</p></div>
+      <div class="card green"><h2 id="compliantControls">0</h2><p>Compliant</p></div>
+      <div class="card orange"><h2 id="partialControls">0</h2><p>Partially Compliant</p></div>
+      <div class="card red"><h2 id="nonCompliantControls">0</h2><p>Non-Compliant</p></div>
+      <div class="card rate"><h2 id="complianceRate">0%</h2><p>Compliance Rate</p></div>
+    </div>
+    <div class="chartBox">
+      <h2>Compliance Status Overview</h2>
+      <div class="pieArea">
+        <div id="pieChart" class="pieChart"></div>
+        <div class="legend">
+          <p><span class="dot greenDot"></span>Compliant: <strong id="legendCompliant">0</strong></p>
+          <p><span class="dot orangeDot"></span>Partially Compliant: <strong id="legendPartial">0</strong></p>
+          <p><span class="dot redDot"></span>Non-Compliant: <strong id="legendNC">0</strong></p>
+          <p><span class="dot grayDot"></span>Not Applicable: <strong id="legendNA">0</strong></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="gapPage" class="page" style="display:none">
+    <h1>Gap Analysis</h1>
+    <p class="subtitle">Partially Compliant and Non-Compliant controls requiring corrective action.</p>
+    <div class="tableWrap">
+      <table>
+        <thead><tr><th>Control ID</th><th>Domain</th><th>Subdomain</th><th>Control Description</th><th>Status</th><th>Remediation Action</th></tr></thead>
+        <tbody id="gapTable"></tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<script>
+// NCA ECC-2:2024 controls extracted from the attached official English PDF.
+// Structure: domain, subdomain, id, description, status, remediation.
+const controls = [
+    {
+        "domain": "Cybersecurity Governance",
+        "subdomain": "Cybersecurity Strategy",
+        "id": "1-1-1",
+        "description": "The cybersecurity strategy of the entity shall be identified, documented, and approved, and it shall be supported by the head of the entity or his/her delegate (Hereinafter referred to as the “Authorized Official”). The strategy goals shall be in line with the relevant legislative and regulatory requirements.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Governance",
+        "subdomain": "Cybersecurity Strategy",
+        "id": "1-1-2",
+        "description": "The entity shall execute an action plan to apply the cybersecurity strategy.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Governance",
+        "subdomain": "Cybersecurity Strategy",
+        "id": "1-1-3",
+        "description": "The cybersecurity strategy shall be reviewed at planned intervals (or in case of changes to the relevant legislative and regulatory requirements).",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Governance",
+        "subdomain": "Cybersecurity Management",
+        "id": "1-2-1",
+        "description": "A department for cybersecurity shall be established within the entity. This department shall be independent from the Information Technology and Communications Department (As per High Order No. 37140, dated 14/08/1438H.). It is recommended that the Cybersecurity Department reports directly to the head of the entity or his/her delegate while ensuring that this does not result in a conflict of interests.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Governance",
+        "subdomain": "Cybersecurity Management",
+        "id": "1-2-2",
+        "description": "All cybersecurity positions shall be filled out with full-time and qualified Saudi cybersecurity professionals.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Governance",
+        "subdomain": "Cybersecurity Management",
+        "id": "1-2-3",
+        "description": "A cybersecurity supervisory committee shall be established pursuant to the instruction of the entity’s Authorized Official to ensure compliance with, support for, and monitoring of the implementation of the cybersecurity programs and regulations. The committee’s members, responsibilities, and governance framework shall be identified, documented, and approved. The committee shall include the head of the cybersecurity department as a member. It is recommended that the committee reports directly to the head of the entity or his/her delegate while ensuring that this does not result in a conflict of interests.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Governance",
+        "subdomain": "Cybersecurity Policies and Procedures",
+        "id": "1-3-1",
+        "description": "The cybersecurity department of the entity shall identify and document cybersecurity policies and procedures, including the cybersecurity controls and requirements, and have them approved by the entity’s Authorized Official, and communicate them to the relevant personnel and parties inside the entity.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Governance",
+        "subdomain": "Cybersecurity Policies and Procedures",
+        "id": "1-3-2",
+        "description": "The cybersecurity department shall ensure that the cybersecurity policies and procedures, including the relevant controls and requirements, are implemented at the entity.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Governance",
+        "subdomain": "Cybersecurity Policies and Procedures",
+        "id": "1-3-3",
+        "description": "The cybersecurity policies and procedures shall be supported by technical security standards (e.g. technical security standards for firewall, databases, operating systems, etc.).",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Governance",
+        "subdomain": "Cybersecurity Policies and Procedures",
+        "id": "1-3-4",
+        "description": "The cybersecurity policies and procedures shall be reviewed and updated at planned intervals (or in case of changes to the relevant legislative and regulatory requirements and standards). Changes shall be documented and approved.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Governance",
+        "subdomain": "Cybersecurity Roles and Responsibilities",
+        "id": "1-4-1",
+        "description": "The Authorized Official shall identify, document, and approve the governance organizational structure, roles, and responsibilities of the entity’s cybersecurity, and assign the persons concerned therewith. The necessary support shall be provided for the implementation thereof while ensuring that this does not result in a conflict of interests.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Governance",
+        "subdomain": "Cybersecurity Roles and Responsibilities",
+        "id": "1-4-2",
+        "description": "The cybersecurity roles and responsibilities within the entity shall be reviewed and updated at planned intervals (or in case of changes to the relevant legislative and regulatory requirements).",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Governance",
+        "subdomain": "Cybersecurity Risk Management",
+        "id": "1-5-1",
+        "description": "The cybersecurity department of the entity shall identify, document, and approve the cybersecurity risk management methodology and procedures within the entity, in accordance with considerations of confidentiality, and the integrity and availability of information and technology assets.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Governance",
+        "subdomain": "Cybersecurity Risk Management",
+        "id": "1-5-2",
+        "description": "The cybersecurity department shall implement the cybersecurity risk management methodology and procedures within the entity.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Governance",
+        "subdomain": "Cybersecurity Risk Management",
+        "id": "1-5-3",
+        "description": "The cybersecurity risk assessment procedures shall be implemented at least in the following cases: 1.5.3.1 At early stage of technology projects. 1.5.3.2 Before making major changes to technology infrastructure. 1.5.3.3 During planning to obtain third party services. 1.5.3.4 During planning and before the release of new technology services and products.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Governance",
+        "subdomain": "Cybersecurity Risk Management",
+        "id": "1-5-4",
+        "description": "The cybersecurity risk management methodology and procedures shall be reviewed and updated at planned intervals (or in case of changes to the relevant legislative and regulatory requirements and standards). Changes shall be documented and approved.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Governance",
+        "subdomain": "Cybersecurity in Information and Technology Project Management",
+        "id": "1-6-1",
+        "description": "Cybersecurity requirements shall be included in the project management methodology and procedures and in the information and technology asset change management within the entity to ensure identifying and managing cybersecurity risks as part of the technology project lifecycle. The cybersecurity requirements shall be a key part of the requirements for technology projects.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Governance",
+        "subdomain": "Cybersecurity in Information and Technology Project Management",
+        "id": "1-6-2",
+        "description": "The cybersecurity requirements for project management and information and technology asset changes within the entity shall include the following as a minimum: 1.6.2.1 Vulnerability assessment and remediation. 1.6.2.2 Reviewing secure configuration and hardening and updates packages before launching projects and changes.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Governance",
+        "subdomain": "Cybersecurity in Information and Technology Project Management",
+        "id": "1-6-3",
+        "description": "The cybersecurity requirements for software and application development projects within the entity shall include the following as a minimum: 1.6.3.1 Using the secure coding standards. 1.6.3.2 Using trusted and licensed sources for software development tools and libraries. 1.6.3.3 Conducting compliance test for software against the cybersecurity requirements within the entity. 1.6.3.4 Secure integration between applications. 1.6.3.5 Reviewing secure configuration and hardening and updates packages before launching software products",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Governance",
+        "subdomain": "Cybersecurity in Information and Technology Project Management",
+        "id": "1-6-4",
+        "description": "The cybersecurity requirements for project management within the entity shall be periodically reviewed.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Governance",
+        "subdomain": "Compliance with Cybersecurity Standards, Laws and Regulations",
+        "id": "1-7-1",
+        "description": "If there are nationally approved international agreements or commitments that include cybersecurity requirements, the entity shall identify and comply with these requirements.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Governance",
+        "subdomain": "Periodical Cybersecurity Review and Audit",
+        "id": "1-8-1",
+        "description": "The cybersecurity department of the entity shall periodically review the implementation of cybersecurity controls by the entity.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Governance",
+        "subdomain": "Periodical Cybersecurity Review and Audit",
+        "id": "1-8-2",
+        "description": "The implementation of cybersecurity controls by the entity shall be reviewed and audited by parties other than the cybersecurity department at the entity, provided that the audit and review are to be conducted independently while considering the principle of conflict of interest, as per the Generally Accepted Auditing Standards (GAAS) and the relevant legislative and regulatory requirements.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Governance",
+        "subdomain": "Periodical Cybersecurity Review and Audit",
+        "id": "1-8-3",
+        "description": "The results of cybersecurity audits and reviews shall be documented and presented to the cybersecurity supervisory committee and the Authorized Official. Results shall include the audit and review scope, observations, recommendations, corrective actions, and remediation plans.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Governance",
+        "subdomain": "Cybersecurity in Human Resources",
+        "id": "1-9-1",
+        "description": "Cybersecurity requirements for personnel of the entity shall be identified, documented, and approved prior to, during, and upon the end or termination of their employment.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Governance",
+        "subdomain": "Cybersecurity in Human Resources",
+        "id": "1-9-2",
+        "description": "Cybersecurity requirements for personnel of the entity shall be implemented.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Governance",
+        "subdomain": "Cybersecurity in Human Resources",
+        "id": "1-9-3",
+        "description": "Cybersecurity requirements prior to the commencement of the employment relationship between personnel and the entity shall include the following as a minimum: 1.9.3.1 Incorporating the personnel’s cybersecurity responsibilities clauses and non-disclosure clauses in their employment contracts with the entity (including during and after employment end/termination with the entity). 1.9.3.2 Conducting screening or vetting for personnel in cybersecurity positions and technical positions with critical and privileged powers.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Governance",
+        "subdomain": "Cybersecurity in Human Resources",
+        "id": "1-9-4",
+        "description": "Cybersecurity requirements for personnel during their employment relationship with the entity shall include the following as a minimum: 1.9.4.1 Cybersecurity awareness (during on-boarding and during employment). 1.9.4.2 Implementation and compliance with cybersecurity requirements, as per the entity’s cybersecurity policies, procedures, and operations.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Governance",
+        "subdomain": "Cybersecurity in Human Resources",
+        "id": "1-9-5",
+        "description": "The personnel’s powers shall be reviewed and revoked immediately upon the end/termination of their employment with the entity.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Governance",
+        "subdomain": "Cybersecurity in Human Resources",
+        "id": "1-9-6",
+        "description": "Cybersecurity requirements for personnel of the entity shall be periodically reviewed.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Governance",
+        "subdomain": "Cybersecurity Awareness and Training Program",
+        "id": "1-10-1",
+        "description": "A cybersecurity awareness program, delivered through multiple channels, shall be periodically developed and approved by the entity to strengthen the awareness about cybersecurity, cyber threats, and risks, and to build a positive cybersecurity awareness culture.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Governance",
+        "subdomain": "Cybersecurity Awareness and Training Program",
+        "id": "1-10-2",
+        "description": "The approved cybersecurity awareness program shall be implemented within the entity.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Governance",
+        "subdomain": "Cybersecurity Awareness and Training Program",
+        "id": "1-10-3",
+        "description": "The cybersecurity awareness program shall include how to protect the entity against the most important and latest cyber risks and threats, including: 1.10.3.1 Secure handling of email services, especially phishing emails. 1.10.3.2 Secure handling of mobile devices and storage media. 1.10.3.3 Secure Internet browsing. 1.10.3.4 Secure usage of social media.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Governance",
+        "subdomain": "Cybersecurity Awareness and Training Program",
+        "id": "1-10-4",
+        "description": "Specialized skills and necessary training shall be provided to personnel in positions that are linked directly to cybersecurity within the entity. Such skills and training shall be classified in line with their cybersecurity responsibilities, including: 1.10.4.1 Cybersecurity department personnel. 1.10.4.2 Personnel working on software/application development and those working on information and technology assets of the entity. 1.10.4.3 Executive and supervisory positions.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Governance",
+        "subdomain": "Cybersecurity Awareness and Training Program",
+        "id": "1-10-5",
+        "description": "The implementation of cybersecurity awareness program within the entity shall be periodically reviewed.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Asset Management",
+        "id": "2-1-1",
+        "description": "Cybersecurity requirements for managing information and technology assets of the entity shall be identified, documented, and approved.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Asset Management",
+        "id": "2-1-2",
+        "description": "Cybersecurity requirements for managing information and technology assets of the entity shall be implemented.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Asset Management",
+        "id": "2-1-3",
+        "description": "The policy of acceptable use of information and technology assets of the entity shall be identified, documented, approved, and communicated.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Asset Management",
+        "id": "2-1-4",
+        "description": "The policy of acceptable use of information and technology assets of the entity shall be implemented.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Asset Management",
+        "id": "2-1-5",
+        "description": "Information and technology assets of the entity shall be classified, labeled, and handled as per the relevant legislative and regulatory requirements.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Asset Management",
+        "id": "2-1-6",
+        "description": "Cybersecurity requirements for managing information and technology assets of the entity shall be periodically reviewed.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Identity and Access Management",
+        "id": "2-2-1",
+        "description": "Cybersecurity requirements for identity and access management of the entity shall be identified, documented, and approved.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Identity and Access Management",
+        "id": "2-2-2",
+        "description": "Cybersecurity requirements for identity and access management of the entity shall be implemented.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Identity and Access Management",
+        "id": "2-2-3",
+        "description": "Cybersecurity requirements for identity and access management of the entity shall include the following as a minimum: 2.2.3.1 Single-factor authentication based on username and password. 2.2.3.2 Multi-factor authentication, and defining the suitable authentication factors and their numbers as well as the suitable authentication techniques based on the result of impact assessment of authentication failure and bypass for remote access and for privileged accounts. 2.2.3.3 User authorization based on identity and access control principles (Need-to-Know and Need-to-Use principle, Least Privilege principle, and Segregation of Duties principle). 2.2.3.4 Privileged access management. 2.2.3.5 Periodic review of identities and access rights.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Identity and Access Management",
+        "id": "2-2-4",
+        "description": "The implementation of cybersecurity requirements for identity and access management of the entity shall be periodically reviewed.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Information System and Processing Facilities Protection",
+        "id": "2-3-1",
+        "description": "Cybersecurity requirements for protection of information system and processing facilities of the entity shall be identified, documented, and approved.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Information System and Processing Facilities Protection",
+        "id": "2-3-2",
+        "description": "Cybersecurity requirements for protection of information systems and processing facilities of the entity shall be implemented.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Information System and Processing Facilities Protection",
+        "id": "2-3-3",
+        "description": "Cybersecurity requirements for protection of information systems and processing facilities of the entity shall include the following as a minimum: 2.3.3.1 Protection from viruses, suspicious programs and activities, and malware on workstations and servers, using modern and advanced protection technologies and mechanisms, and securely managing them. 2.3.3.2 Strict restriction on the use of external storage media and their security. 2.3.3.3 Patch management for systems, applications, and devices. 2.3.3.4 Centralized clock synchronization with an accurate and trusted source, such as sources provided by the Saudi Standards, Metrology and Quality Organization (SASO).",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Information System and Processing Facilities Protection",
+        "id": "2-3-4",
+        "description": "The implementation of cybersecurity requirements for protection of the information system and processing facilities of the entity shall be periodically reviewed.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Email Protection",
+        "id": "2-4-1",
+        "description": "Cybersecurity requirements for protection of the email service of the entity shall be identified, documented, and approved.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Email Protection",
+        "id": "2-4-2",
+        "description": "Cybersecurity requirements for protection of email service of the entity shall be implemented.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Email Protection",
+        "id": "2-4-3",
+        "description": "Cybersecurity requirements for protection of the email service of the entity shall include the following as a minimum: 2.4.3.1 Analyzing and filtering email messages (specifically phishing emails and spam emails) using modern and advanced email protection techniques and mechanisms. 2.4.3.2 Multi-factor authentication, and defining the suitable authentication factors and their numbers as well as the suitable authentication techniques based on the result of impact assessment of authentication failure and bypass for remote and webmail access. 2.4.3.3 Email archiving and backup. 2.4.3.4 Secure management and protection against Advanced Persistent Threats (APT), which normally utilize zero-day malware and viruses. 2.4.3.5 Validation of the entity’s email service domains by using Sender Policy Framework (SPF), Domain Keys Identified Mail (DKIM), and Domain Message Authentication Reporting and Conformance (DMARC).",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Email Protection",
+        "id": "2-4-4",
+        "description": "The implementation of cybersecurity requirements for email service of the entity shall be periodically reviewed.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Networks Security Management",
+        "id": "2-5-1",
+        "description": "Cybersecurity requirements for the entity’s network security management shall be identified, documented, and approved.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Networks Security Management",
+        "id": "2-5-2",
+        "description": "Cybersecurity requirements for the entity’s network security management shall be implemented.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Networks Security Management",
+        "id": "2-5-3",
+        "description": "Cybersecurity requirements for the entity’s network security management shall include the following as a minimum: 2.5.3.1 Logical or physical isolation and segmentation of network segments in a secure manner which is required to control relevant cybersecurity risks, using firewall and defense-in-depth principle. 2.5.3.2 Isolation of production network from testing and development environment networks. 2.5.3.3 Secure browsing and internet connectivity, including strict restrictions on suspicious websites, file storage/sharing websites, and remote access websites. 2.5.3.4 Wireless network security and protection using secure authentication and encryption techniques and avoiding the connection of wireless networks to the entity’s internal network, except after a comprehensive assessment of subsequent risks, with handling them in a way that protects the technology assets of the entity. 2.5.3.5 Restricting and managing network services, protocols, and ports. 2.5.3.6 Intrusion Prevention Systems (IPS). 2.5.3.7 Security of Domain Name Service (DNS). 2.5.3.8 Secure management and protection of Internet browsing channel against Advanced Persistent Threats (APT), which normally utilize zero-day malware and viruses. 2-5-3-9 Protecting against Distributed Denial of Service (DDoS) attacks to limit risks arising from these attacks.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Networks Security Management",
+        "id": "2-5-4",
+        "description": "The implementation of cybersecurity requirements for the entity’s network security management shall be periodically reviewed.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Mobile Devices Security",
+        "id": "2-6-1",
+        "description": "Cybersecurity requirements for mobile devices and BYOD security when connected to the entity’s network shall be identified, documented, and approved.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Mobile Devices Security",
+        "id": "2-6-2",
+        "description": "Cybersecurity requirements for mobile devices and BYOD security of the entity shall be implemented.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Mobile Devices Security",
+        "id": "2-6-3",
+        "description": "Cybersecurity requirements for mobile devices and BYOD security of the entity shall include the following as a minimum: 2.6.3.1 Separation and encryption of the entity’s data and information stored on mobile devices and BYODs. 2.6.3.2 Controlled and restricted use based on the requirements of the interest of the entity's business. 2.6.3.3 Deletion of the entity’s data and information stored on mobile devices and BYOD in cases of device loss or after the ending/termination of employment with the entity. 2.6.3.4 Security awareness for users.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Mobile Devices Security",
+        "id": "2-6-4",
+        "description": "The implementation of cybersecurity requirements for mobile devices and BYOD security of the entity shall be periodically reviewed.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Data and Information Protection",
+        "id": "2-7-1",
+        "description": "Cybersecurity requirements for protecting and handling data and information of the entity shall be identified, documented, and approved, as per the relevant legislative and regulatory requirements.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Data and Information Protection",
+        "id": "2-7-2",
+        "description": "Cybersecurity requirements for protecting data and information of the entity shall be implemented, based on its classification level.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Data and Information Protection",
+        "id": "2-7-3",
+        "description": "The implementation of cybersecurity requirements for protecting data and information of the entity shall be periodically reviewed.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Cryptography",
+        "id": "2-8-1",
+        "description": "Cybersecurity requirements for cryptography within the entity shall be identified, documented, and approved.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Cryptography",
+        "id": "2-8-2",
+        "description": "Cybersecurity requirements for cryptography within the entity shall be implemented.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Cryptography",
+        "id": "2-8-3",
+        "description": "Cybersecurity requirements for cryptography shall include at least the requirements in the National Cryptographic Standards, published by NCA. The appropriate cryptographic standard level shall be implemented based on the nature and sensitivity of the data, systems, and networks to be protected as well as the entity’s risk assessment, and as per the relevant legislative and regulatory requirements, as follows: 2.8.3.1 Approved cryptographic systems and solutions standards and their technical and regulatory restrictions. 2.8.3.2 Secure management of cryptographic keys during their lifecycles. 2.8.3.3 Encryption of data in-transit and at-rest, as per their classification and the relevant legislative and regulatory requirements.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Cryptography",
+        "id": "2-8-4",
+        "description": "The implementation of cybersecurity requirements for cryptography within the entity shall be periodically reviewed.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Backup and Recovery Management",
+        "id": "2-9-1",
+        "description": "Cybersecurity requirements for backup and recovery management within the entity shall be identified, documented, and approved.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Backup and Recovery Management",
+        "id": "2-9-2",
+        "description": "Cybersecurity requirements for backup and recovery management within the entity shall be implemented.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Backup and Recovery Management",
+        "id": "2-9-3",
+        "description": "Cybersecurity requirements for backup and recovery management shall include the following as a minimum: 2.9.3.1 Scope of backups to cover critical technology and information assets. 2.9.3.2 Ability to perform quick recovery of data and systems after cybersecurity incidents. 2.9.3.3 Periodic testing for the effectiveness of backup recovery.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Backup and Recovery Management",
+        "id": "2-9-4",
+        "description": "The implementation of cybersecurity requirements for backup and recovery management within the entity shall be periodically reviewed.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Vulnerabilities Management",
+        "id": "2-10-1",
+        "description": "Cybersecurity requirements for technical vulnerabilities management within the entity shall be identified, documented, and approved.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Vulnerabilities Management",
+        "id": "2-10-2",
+        "description": "Cybersecurity requirements for technical vulnerabilities management within the entity shall be implemented.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Vulnerabilities Management",
+        "id": "2-10-3",
+        "description": "Cybersecurity requirements for technical vulnerabilities management shall include the following as a minimum: 2.10.3.1 Periodic vulnerabilities assessment and detection. 2.10.3.2 Vulnerabilities classification based on their severities. 2.10.3.3 Vulnerabilities remediation based on their classification and the associated cyber risks. 2.10.3.4 Patch management to remediate vulnerabilities, and ensuring the integrity and effectiveness of these updates and fixes are verified using a non-production environment before being applied. 2.10.3.5 Communication and subscription with trusted resources for new and up-to-date vulnerabilities.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Vulnerabilities Management",
+        "id": "2-10-4",
+        "description": "The implementation of cybersecurity requirements for technical vulnerabilities management within the entity shall be periodically reviewed.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Penetration Testing",
+        "id": "2-11-1",
+        "description": "Cybersecurity requirements for penetration testing within the entity shall be identified, documented, and approved.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Penetration Testing",
+        "id": "2-11-2",
+        "description": "Cybersecurity requirements for penetration testing within the entity shall be implemented.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Penetration Testing",
+        "id": "2-11-3",
+        "description": "Cybersecurity requirements for penetration testing shall include the following as a minimum: 2.11.3.1 Scope of penetration testing to include all externally provided services (via the Internet) and their technical components, including infrastructure, websites, web applications, smartphone and tablet applications, email, and remote access. 2.11.3.2 Conducting penetration tests periodically.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Penetration Testing",
+        "id": "2-11-4",
+        "description": "The implementation of cybersecurity requirements for penetration testing shall be periodically reviewed.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Cybersecurity Event Logs and Monitoring Management",
+        "id": "2-12-1",
+        "description": "Cybersecurity requirements for cybersecurity event logs and monitoring management within the entity shall be identified, documented, and approved.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Cybersecurity Event Logs and Monitoring Management",
+        "id": "2-12-2",
+        "description": "Cybersecurity requirements for cybersecurity event logs and monitoring management within the entity shall be implemented.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Cybersecurity Event Logs and Monitoring Management",
+        "id": "2-12-3",
+        "description": "Cybersecurity requirements for cybersecurity event logs and monitoring management shall include the following as a minimum: 2.12.3.1 Activation of cybersecurity event logs for critical information assets within the entity. 2.12.3.2 Activation of cybersecurity event logs for critical and privileged accounts accessing information assets as well as for remote access events within the entity. 2.12.3.3 Identification of Security Information and Event Management (SIEM) techniques required for cybersecurity event logs collection. 2.12.3.4 Continuous monitoring of cybersecurity event logs. 2.12.3.5 Retention period of cybersecurity event logs (shall be at least 12 months).",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Cybersecurity Event Logs and Monitoring Management",
+        "id": "2-12-4",
+        "description": "The implementation of cybersecurity requirements for cybersecurity event logs and monitoring management within the entity shall be periodically reviewed.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Cybersecurity Incident and Threat Management",
+        "id": "2-13-1",
+        "description": "Requirements for cybersecurity incident and threat management within the entity shall be identified, documented, and approved.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Cybersecurity Incident and Threat Management",
+        "id": "2-13-2",
+        "description": "Requirements for cybersecurity incident and threat management within the entity shall be implemented.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Cybersecurity Incident and Threat Management",
+        "id": "2-13-3",
+        "description": "Requirements for cybersecurity incident and threat management shall include the following as a minimum: 2.13.3.1 Cybersecurity incident response plans and escalation procedures. 2.13.3.2 Cybersecurity incident classification. 2.13.3.3 Reporting cybersecurity incidents to the NCA. 2.13.3.4 Sharing cybersecurity incident notifications, threat intelligence, penetration indicators, and incident reports with the NCA. 2.13.3.5 Collecting and handling threat intelligence feeds.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Cybersecurity Incident and Threat Management",
+        "id": "2-13-4",
+        "description": "The implementation of cybersecurity requirements for incident and threat management within the entity shall be periodically reviewed.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Physical Security",
+        "id": "2-14-1",
+        "description": "Cybersecurity requirements for protection of information and technology assets of the entity against unauthorized physical access, loss, theft, and damage shall be identified, documented, and approved.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Physical Security",
+        "id": "2-14-2",
+        "description": "Cybersecurity requirements for protection of information and technology assets of the entity against unauthorized physical access, loss, theft, and damage shall be implemented.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Physical Security",
+        "id": "2-14-3",
+        "description": "Cybersecurity requirements for protection of information and technology assets of the entity against unauthorized physical access, loss, theft, and damage shall include the following as a minimum: 2.14.3.1 Authorized access to critical areas within the entity (e.g. the entity’s data center, disaster recovery center, critical information processing facilities, security surveillance center, network connection rooms, technical device and equipment supply areas, etc.). 2.14.3.2 Access and monitoring logs (CCTV). 2.14.3.3 Protection of access and monitoring log information. 2.14.3.4 Security of the destruction and re-use of physical assets that hold classified information (including paper documents and storage media). 2.14.3.5 Security of devices and equipment inside and outside the entity’s facilities.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Physical Security",
+        "id": "2-14-4",
+        "description": "Cybersecurity requirements for protection of information and technology assets of the entity against unauthorized physical access, loss, theft, and damage shall be periodically reviewed.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Web Application Security",
+        "id": "2-15-1",
+        "description": "Cybersecurity requirements for protection of external web applications of the entity shall be identified, documented, and approved.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Web Application Security",
+        "id": "2-15-2",
+        "description": "Cybersecurity requirements for protection of external web applications of the entity shall be implemented.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Web Application Security",
+        "id": "2-15-3",
+        "description": "Cybersecurity requirements for protection of external web applications of the entity shall include the following as a minimum: 2.15.3.1 Use of web application firewall. 2.15.3.2 Adoption of the multi-tier architecture principle. 2.15.3.3 Use of secure protocols (e.g. HTTPS). 2.15.3.4 Clarification of the secure usage policy for users. 2.15.3.5 User authentication, and the suitable authentication factors and their numbers as well as the authentication techniques shall be defined based on the result of impact assessment of authentication failure and bypass for users’ access.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Defense",
+        "subdomain": "Web Application Security",
+        "id": "2-15-4",
+        "description": "Cybersecurity requirements for protection of web applications of the entity shall be periodically reviewed.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Resilience",
+        "subdomain": "Cybersecurity Resilience Aspects of Business Continuity Management (BCM)",
+        "id": "3-1-1",
+        "description": "Cybersecurity requirements for business continuity management within the entity shall be identified, documented, and approved.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Resilience",
+        "subdomain": "Cybersecurity Resilience Aspects of Business Continuity Management (BCM)",
+        "id": "3-1-2",
+        "description": "Cybersecurity requirements for business continuity management within the entity shall be implemented.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Resilience",
+        "subdomain": "Cybersecurity Resilience Aspects of Business Continuity Management (BCM)",
+        "id": "3-1-3",
+        "description": "Cybersecurity requirements for business continuity management within the entity shall include the following as a minimum: 3.1.3.1 Ensuring the continuity of cybersecurity systems and procedures. 3.1.3.2 Developing plans for response to cybersecurity incidents that may affect the entity’s business continuity. 3.1.3.3 Developing disaster recovery plans.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Cybersecurity Resilience",
+        "subdomain": "Cybersecurity Resilience Aspects of Business Continuity Management (BCM)",
+        "id": "3-1-4",
+        "description": "Cybersecurity requirements for business continuity management within the entity shall be periodically reviewed.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Third-Party and Cloud Computing Cybersecurity",
+        "subdomain": "Third-Party Cybersecurity",
+        "id": "4-1-1",
+        "description": "Cybersecurity requirements for the entity’s contracts and agreements with third parties shall be identified, documented, and approved.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Third-Party and Cloud Computing Cybersecurity",
+        "subdomain": "Third-Party Cybersecurity",
+        "id": "4-1-2",
+        "description": "Cybersecurity requirements for contracts and agreements with third parties, e.g. Service Level Agreement (SLA), which, if impaired, may affect the entity's data or services shall include the following as a minimum: 4.1.2.1 Clauses of non-disclosure and the secure removal of the entity’s data by the third party upon the end of service. 4.1.2.2 Communication procedures in case of the occurrence of a cybersecurity incident. 4.1.2.3 Obligating the third party to apply the entity’s cybersecurity requirements and policies and the relevant legislative and regulatory requirements.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Third-Party and Cloud Computing Cybersecurity",
+        "subdomain": "Third-Party Cybersecurity",
+        "id": "4-1-3",
+        "description": "Cybersecurity requirements for contracts and agreements with third parties providing IT or cybersecurity outsourcing or managed services shall include the following as a minimum: 4.1.3.1 Conducting a cybersecurity risk assessment and ensuring the availability of risk mitigation controls before signing contracts and agreements or upon making changes to the relevant legislative and regulatory requirements. 4.1.3.2 Cybersecurity managed service centers for monitoring and operations which use remote access shall be fully located in the Kingdom of Saudi Arabia.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Third-Party and Cloud Computing Cybersecurity",
+        "subdomain": "Third-Party Cybersecurity",
+        "id": "4-1-4",
+        "description": "Cybersecurity requirements for third parties shall be periodically reviewed.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Third-Party and Cloud Computing Cybersecurity",
+        "subdomain": "Cloud Computing and Hosting Cybersecurity",
+        "id": "4-2-1",
+        "description": "Cybersecurity requirements for use of cloud computing and hosting services shall be identified, documented, and approved.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Third-Party and Cloud Computing Cybersecurity",
+        "subdomain": "Cloud Computing and Hosting Cybersecurity",
+        "id": "4-2-2",
+        "description": "Cybersecurity requirements for the cloud computing and hosting services within the entity shall be implemented.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Third-Party and Cloud Computing Cybersecurity",
+        "subdomain": "Cloud Computing and Hosting Cybersecurity",
+        "id": "4-2-3",
+        "description": "In accordance with the relevant legislative and regulatory requirements, and in addition to the applicable controls in the Main Domains (1), (2), and (3) and Subdomain (4.1) that are necessary to protect the entity’s data or services provided thereto, cybersecurity requirements for use of cloud computing and hosting services shall include the following as a minimum: 4.2.3.1 Protection of entity’s data by cloud and hosting service providers in accordance with its classification level and returning data (in a usable format) upon service completion. 4.2.3.2 Separation of the entity’s environment (especially virtual servers) from environments of other entities within the cloud computing service provider.",
+        "status": "",
+        "remediation": ""
+    },
+    {
+        "domain": "Third-Party and Cloud Computing Cybersecurity",
+        "subdomain": "Cloud Computing and Hosting Cybersecurity",
+        "id": "4-2-4",
+        "description": "Cybersecurity requirements for cloud computing and hosting services shall be periodically reviewed.",
+        "status": "",
+        "remediation": ""
+    }
+];
+
+function startAssessment(){
+  document.getElementById("welcomePage").style.display="none";
+  document.getElementById("mainApp").style.display="block";
+  createTable();
+  updateDashboard();
+}
+
+function hideAllPages(){
+  document.getElementById("assessmentPage").style.display="none";
+  document.getElementById("dashboardPage").style.display="none";
+  document.getElementById("gapPage").style.display="none";
+}
+
+function showAssessment(){
+  hideAllPages();
+  document.getElementById("assessmentPage").style.display="block";
+}
+
+function showDashboard(){
+  hideAllPages();
+  document.getElementById("dashboardPage").style.display="block";
+  updateDashboard();
+}
+
+function showGapAnalysis(){
+  hideAllPages();
+  document.getElementById("gapPage").style.display="block";
+  createGapTable();
+}
+
+function createTable(){
+  const table=document.getElementById("controlTable");
+  table.innerHTML="";
+
+  controls.forEach(function(control,index){
+    const row=document.createElement("tr");
+
+    const domainCell=document.createElement("td");
+    domainCell.textContent=control.domain || "—";
+    row.appendChild(domainCell);
+
+    const subdomainCell=document.createElement("td");
+    subdomainCell.textContent=control.subdomain || "—";
+    row.appendChild(subdomainCell);
+
+    const idCell=document.createElement("td");
+    idCell.className="controlId";
+    idCell.textContent=control.id || "—";
+    row.appendChild(idCell);
+
+    const descriptionCell=document.createElement("td");
+    descriptionCell.textContent=control.description || "—";
+    row.appendChild(descriptionCell);
+
+    const statusCell=document.createElement("td");
+    const dropdown=document.createElement("select");
+    dropdown.className="statusDropdown";
+
+    const statusOptions=[
+      ["","Select Status"],
+      ["Compliant","Compliant"],
+      ["Partial","Partially Compliant"],
+      ["Non-Compliant","Non-Compliant"],
+      ["NA","Not Applicable"]
+    ];
+
+    statusOptions.forEach(function(optionData){
+      const option=document.createElement("option");
+      option.value=optionData[0];
+      option.textContent=optionData[1];
+      dropdown.appendChild(option);
+    });
+
+    dropdown.value=control.status || "";
+    applyStatusColor(dropdown);
+    dropdown.addEventListener("change",function(){
+      changeStatus(index,dropdown);
+    });
+
+    statusCell.appendChild(dropdown);
+    row.appendChild(statusCell);
+    table.appendChild(row);
+  });
+}
+
+function applyStatusColor(dropdown){
+  const status=dropdown.value;
+  dropdown.className="statusDropdown";
+  if(status==="Compliant") dropdown.classList.add("compliant");
+  else if(status==="Partial") dropdown.classList.add("partial");
+  else if(status==="Non-Compliant") dropdown.classList.add("noncompliant");
+  else if(status==="NA") dropdown.classList.add("na");
+}
+
+function changeStatus(index,dropdown){
+  const status=dropdown.value;
+  controls[index].status=status;
+  applyStatusColor(dropdown);
+  updateDashboard();
+}
+
+function getCounts(){
+  let compliant=0,partial=0,nonCompliant=0,na=0;
+  controls.forEach(function(control){
+    if(control.status==="Compliant") compliant++;
+    else if(control.status==="Partial") partial++;
+    else if(control.status==="Non-Compliant") nonCompliant++;
+    else if(control.status==="NA") na++;
+  });
+  return {compliant,partial,nonCompliant,na};
+}
+
+function updateDashboard(){
+  const {compliant,partial,nonCompliant,na}=getCounts();
+  const total=controls.length;
+  const assessed=compliant+partial+nonCompliant+na;
+  const applicable=compliant+partial+nonCompliant;
+  const rate=applicable>0?Math.round(compliant/applicable*100):0;
+
+  document.getElementById("totalControls").textContent=total;
+  document.getElementById("assessedControls").textContent=assessed;
+  document.getElementById("compliantControls").textContent=compliant;
+  document.getElementById("partialControls").textContent=partial;
+  document.getElementById("nonCompliantControls").textContent=nonCompliant;
+  document.getElementById("complianceRate").textContent=rate+"%";
+  createPieChart(compliant,partial,nonCompliant,na);
+}
+
+function createPieChart(compliant,partial,nonCompliant,na){
+  const total=compliant+partial+nonCompliant+na;
+  const pie=document.getElementById("pieChart");
+
+  if(total===0){
+    pie.style.background="#E5E7EB";
+  }else{
+    const green=compliant/total*100;
+    const orange=green+partial/total*100;
+    const red=orange+nonCompliant/total*100;
+    pie.style.background=`conic-gradient(
+      #059669 0% ${green}%,
+      #D97706 ${green}% ${orange}%,
+      #DC2626 ${orange}% ${red}%,
+      #9CA3AF ${red}% 100%
+    )`;
+  }
+
+  document.getElementById("legendCompliant").textContent=compliant;
+  document.getElementById("legendPartial").textContent=partial;
+  document.getElementById("legendNC").textContent=nonCompliant;
+  document.getElementById("legendNA").textContent=na;
+}
+
+function createGapTable(){
+  const table=document.getElementById("gapTable");
+  const gaps=controls.filter(c=>c.status==="Partial"||c.status==="Non-Compliant");
+  table.innerHTML="";
+
+  if(gaps.length===0){
+    table.innerHTML='<tr><td colspan="6" class="emptyGap">No compliance gaps identified.</td></tr>';
+    return;
+  }
+
+  gaps.forEach(function(control){
+    const statusClass=control.status==="Non-Compliant"?"noncompliant":"partial";
+    const statusText=control.status==="Partial"?"Partially Compliant":"Non-Compliant";
+    table.innerHTML+=`
+      <tr>
+        <td class="controlId">${control.id}</td>
+        <td>${control.domain}</td>
+        <td>${control.subdomain}</td>
+        <td>${control.description}</td>
+        <td class="${statusClass}">${statusText}</td>
+        <td><textarea placeholder="Enter remediation action..." onchange="saveRemediation('${control.id}',this.value)">${control.remediation||""}</textarea></td>
+      </tr>`;
+  });
+}
+
+function saveRemediation(controlID,remediation){
+  const control=controls.find(item=>item.id===controlID);
+  if(control) control.remediation=remediation;
+}
+
+function csvSafe(value){
+  return '"'+String(value??"").replace(/"/g,'""')+'"';
+}
+
+function buildCSV(){
+  const rows=[
+    ["Domain","Subdomain","Control ID","Control Description","Status","Remediation Action"]
+  ];
+
+  controls.forEach(function(control){
+    let status=control.status;
+    if(status==="Partial") status="Partially Compliant";
+    else if(status==="NA") status="Not Applicable";
+
+    rows.push([
+      control.domain,
+      control.subdomain,
+      control.id,
+      control.description,
+      status,
+      control.remediation||""
+    ]);
+  });
+
+  // UTF-8 BOM helps Excel display the CSV correctly.
+  return "\uFEFF"+rows.map(row=>row.map(csvSafe).join(",")).join("\r\n");
+}
+
+function prepareCSVDownload(link){
+  try{
+    const csv=buildCSV();
+
+    // Attach the CSV directly to the same link the user physically clicked.
+    // This avoids a second programmatic click, which some browsers block.
+    link.href="data:text/csv;charset=utf-8,"+encodeURIComponent(csv);
+    link.download="NCA_ECC_2_2024_Assessment.csv";
+    return true;
+  }catch(error){
+    console.error("CSV export failed:",error);
+    alert("CSV export failed. Please try opening the HTML file in Chrome or Edge.");
+    return false;
+  }
+}
+</script>
+</body>
+</html>
